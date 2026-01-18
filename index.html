@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Windows 12 Experimental UI</title>
+  <style>
+    :root{
+      --bg: #0f1220;
+      --glass: rgba(255,255,255,0.08);
+      --glass-strong: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.18);
+      --text: #e8ecf1;
+      --muted: #b9c0cc;
+      --accent: #6aa9ff;
+      --accent-2: #9b6aff;
+      --danger: #ff6a6a;
+      --success: #4cd97b;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --blur: blur(16px);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% 20%, #1a1f3a 0%, #0f1220 40%, #0b0e18 100%);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* Desktop */
+    .desktop {
+      position: absolute;
+      inset: 0 0 60px 0; /* chừa chỗ cho taskbar */
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      grid-auto-rows: 110px;
+      gap: 16px;
+    }
+
+    .icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: var(--blur);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform .15s ease, background .2s ease, border-color .2s ease;
+      user-select: none;
+    }
+    .icon:hover {
+      transform: translateY(-2px);
+      background: var(--glass-strong);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .icon .emoji {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    .icon .label {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* Taskbar */
+    .taskbar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-top: 1px solid var(--border);
+      backdrop-filter: var(--blur);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
+    }
+
+    .start-btn {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, #6aa9ff 0%, #9b6aff 100%);
+      color: white;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform .12s ease, filter .2s ease;
+    }
+    .start-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .start-btn:active { transform: translateY(0); filter: brightness(0.96); }
+
+    .taskbar-apps {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .task-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .12s ease, background .2s ease, border-color .2s ease;
+    }
+    .task-icon:hover { transform: translateY(-1px); background: var(--glass-strong); border-color: rgba(255,255,255,0.28); }
+    .task-icon.active { outline: 2px solid var(--accent); }
+
+    .tray {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tray .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Start menu */
+    .start-menu {
+      position: absolute;
+      left: 12px; bottom: 72px;
+      width: 520px;
+      max-width: calc(100% - 24px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: var(--blur);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: none;
+      animation: pop .18s ease;
+    }
+    @keyframes pop {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    .start-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .start-search {
+      width: 60%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      outline: none;
+    }
+    .start-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+    .start-app {
+      height: 70px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      transition: background .2s ease, border-color .2s ease, transform .12s ease;
+    }
+    .start-app:hover { background: var(--glass-strong); border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+    /* Window */
+    .window {
+      position: absolute;
+      min-width: 420px;
+      max-width: 70vw;
+      min-height: 260px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: var(--blur);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: none;
+    }
+    .window.active { display: block; }
+    .titlebar {
+      height: 44px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      border-bottom: 1px solid var(--border);
+      cursor: move;
+      user-select: none;
+    }
+    .titlebar .title {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .titlebar .controls {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn {
+      width: 32px; height: 28px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      transition: background .2s ease, border-color .2s ease, transform .12s ease;
+      font-size: 14px;
+    }
+    .btn:hover { background: var(--glass-strong); border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+    .btn.close:hover { background: rgba(255, 106, 106, 0.25); border-color: rgba(255,106,106,0.5); }
+
+    .content {
+      padding: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Resize handle */
+    .resize {
+      position: absolute;
+      right: 0; bottom: 0;
+      width: 14px; height: 14px;
+      cursor: nwse-resize;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.35) 40%);
+      opacity: 0.6;
+    }
+
+    /* Focus ring */
+    .window.focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    /* Utility */
+    .hidden { display: none !important; }
+
+    /* Responsive tweaks */
+    @media (max-width: 640px) {
+      .start-grid { grid-template-columns: repeat(4, 1fr); }
+      .window { min-width: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Desktop icons -->
+  <div class="desktop" id="desktop">
+    <div class="icon" data-app="explorer">
+      <div class="emoji">🗂️</div>
+      <div class="label">File Explorer</div>
+    </div>
+    <div class="icon" data-app="notes">
+      <div class="emoji">📝</div>
+      <div class="label">Notes</div>
+    </div>
+    <div class="icon" data-app="browser">
+      <div class="emoji">🌐</div>
+      <div class="label">Edge (Beta)</div>
+    </div>
+    <div class="icon" data-app="music">
+      <div class="emoji">🎵</div>
+      <div class="label">Music</div>
+    </div>
+    <div class="icon" data-app="settings">
+      <div class="emoji">⚙️</div>
+      <div class="label">Settings</div>
+    </div>
+  </div>
+
+  <!-- Taskbar -->
+  <div class="taskbar">
+    <button class="start-btn" id="startBtn">⊞</button>
+    <div class="taskbar-apps" id="taskbarApps"></div>
+    <div class="tray">
+      <div class="pill" id="clock"></div>
+      <div class="pill">Wi‑Fi</div>
+      <div class="pill">🔊 60%</div>
+    </div>
+  </div>
+
+  <!-- Start menu -->
+  <div class="start-menu" id="startMenu">
+    <div class="start-header">
+      <div style="font-weight:700;">Windows 12 Preview</div>
+      <input class="start-search" id="startSearch" placeholder="Tìm kiếm ứng dụng, file, cài đặt..."/>
+    </div>
+    <div class="start-grid" id="startGrid">
+      <div class="start-app" data-app="explorer">🗂️</div>
+      <div class="start-app" data-app="notes">📝</div>
+      <div class="start-app" data-app="browser">🌐</div>
+      <div class="start-app" data-app="music">🎵</div>
+      <div class="start-app" data-app="settings">⚙️</div>
+      <div class="start-app" data-app="terminal">>_</div>
+      <div class="start-app" data-app="photos">🖼️</div>
+      <div class="start-app" data-app="calendar">📅</div>
+      <div class="start-app" data-app="mail">✉️</div>
+      <div class="start-app" data-app="store">🛍️</div>
+      <div class="start-app" data-app="chat">💬</div>
+      <div class="start-app" data-app="weather">☀️</div>
+    </div>
+  </div>
+
+  <!-- Windows -->
+  <div class="window" id="win-explorer" style="left: 80px; top: 80px; width: 560px; height: 360px;">
+    <div class="titlebar">
+      <div class="title">🗂️ File Explorer</div>
+      <div class="controls">
+        <div class="btn minimize" title="Thu nhỏ">—</div>
+        <div class="btn maximize" title="Phóng to">▢</div>
+        <div class="btn close" title="Đóng">✕</div>
+      </div>
+    </div>
+    <div class="content">
+      <p><strong>Thư mục nhanh:</strong> Desktop, Documents, Downloads, Pictures.</p>
+      <p>Giao diện thử nghiệm với hiệu ứng kính mờ, thanh điều hướng tối giản.</p>
+    </div>
+    <div class="resize"></div>
+  </div>
+
+  <div class="window" id="win-notes" style="left: 180px; top: 140px; width: 480px; height: 320px;">
+    <div class="titlebar">
+      <div class="title">📝 Notes</div>
+      <div class="controls">
+        <div class="btn minimize">—</div>
+        <div class="btn maximize">▢</div>
+        <div class="btn close">✕</div>
+      </div>
+    </div>
+    <div class="content">
+      <textarea id="notesArea" style="width:100%;height:200px;border:none;outline:none;background:transparent;color:var(--text);font-size:14px;">
+Ý tưởng Windows 12: Start Menu thông minh, widget linh hoạt, hiệu ứng mượt mà.
+      </textarea>
+    </div>
+    <div class="resize"></div>
+  </div>
+
+  <div class="window" id="win-browser" style="left: 260px; top: 220px; width: 640px; height: 380px;">
+    <div class="titlebar">
+      <div class="title">🌐 Edge (Beta)</div>
+      <div class="controls">
+        <div class="btn minimize">—</div>
+        <div class="btn maximize">▢</div>
+        <div class="btn close">✕</div>
+      </div>
+    </div>
+    <div class="content">
+      <p>Trình duyệt mô phỏng. Nhập URL (demo):</p>
+      <input id="fakeUrl" placeholder="https://..." style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text);"/>
+      <p style="margin-top:10px;color:var(--muted)">(Demo không tải trang thật—chỉ hiển thị URL bạn nhập.)</p>
+    </div>
+    <div class="resize"></div>
+  </div>
+
+  <script>
+    // Clock
+    function updateClock(){
+      const el = document.getElementById('clock');
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      el.textContent = hh + ':' + mm;
+    }
+    updateClock();
+    setInterval(updateClock, 1000 * 30);
+
+    // Start menu toggle
+    const startBtn = document.getElementById('startBtn');
+    const startMenu = document.getElementById('startMenu');
+    startBtn.addEventListener('click', () => {
+      startMenu.style.display = startMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', (e) => {
+      const within = startMenu.contains(e.target) || startBtn.contains(e.target);
+      if(!within) startMenu.style.display = 'none';
+    });
+
+    // Launch apps from Start menu & desktop icons
+    const appMap = {
+      explorer: 'win-explorer',
+      notes: 'win-notes',
+      browser: 'win-browser',
+      music: null,
+      settings: null,
+      terminal: null,
+      photos: null,
+      calendar: null,
+      mail: null,
+      store: null,
+      chat: null,
+      weather: null
+    };
+
+    function openWindow(id){
+      if(!id) return;
+      const win = document.getElementById(id);
+      if(!win) return;
+      win.classList.add('active');
+      focusWindow(win);
+      addTaskIcon(id);
+    }
+
+    document.querySelectorAll('.start-app').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const app = el.getAttribute('data-app');
+        openWindow(appMap[app]);
+        startMenu.style.display = 'none';
+      });
+    });
+
+    document.querySelectorAll('.icon').forEach(el=>{
+      el.addEventListener('dblclick', ()=>{
+        const app = el.getAttribute('data-app');
+        openWindow(appMap[app]);
+      });
+    });
+
+    // Taskbar icons
+    const taskbarApps = document.getElementById('taskbarApps');
+    function addTaskIcon(winId){
+      const exists = taskbarApps.querySelector(`[data-win="${winId}"]`);
+      if(exists) return;
+      const icon = document.createElement('div');
+      icon.className = 'task-icon active';
+      icon.setAttribute('data-win', winId);
+      icon.textContent = '▢';
+      icon.title = winId.replace('win-','');
+      icon.addEventListener('click', ()=>{
+        const win = document.getElementById(winId);
+        if(!win) return;
+        const visible = win.classList.contains('active');
+        if(visible){
+          win.classList.remove('active');
+          icon.classList.remove('active');
+        } else {
+          win.classList.add('active');
+          focusWindow(win);
+          icon.classList.add('active');
+        }
+      });
+      taskbarApps.appendChild(icon);
+    }
+
+    function removeTaskIcon(winId){
+      const el = taskbarApps.querySelector(`[data-win="${winId}"]`);
+      if(el) el.remove();
+    }
+
+    // Window focus management
+    let zBase = 10;
+    function focusWindow(win){
+      document.querySelectorAll('.window').forEach(w=>{
+        w.classList.remove('focus');
+      });
+      win.classList.add('focus');
+      zBase += 1;
+      win.style.zIndex = zBase;
+    }
+
+    // Dragging windows
+    document.querySelectorAll('.window').forEach(win=>{
+      const titlebar = win.querySelector('.titlebar');
+      let dragging = false, offsetX = 0, offsetY = 0;
+
+      titlebar.addEventListener('mousedown', (e)=>{
+        dragging = true;
+        focusWindow(win);
+        const rect = win.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        document.body.style.userSelect = 'none';
+      });
+
+      document.addEventListener('mousemove', (e)=>{
+        if(!dragging) return;
+        const x = e.clientX - offsetX;
+        const y = e.clientY - offsetY;
+        const maxX = window.innerWidth - win.offsetWidth;
+        const maxY = window.innerHeight - 60 - win.offsetHeight; // trừ taskbar
+        win.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+        win.style.top  = Math.max(0, Math.min(y, maxY)) + 'px';
+      });
+
+      document.addEventListener('mouseup', ()=>{
+        dragging = false;
+        document.body.style.userSelect = '';
+      });
+
+      // Resize
+      const handle = win.querySelector('.resize');
+      let resizing = false, startW=0, startH=0, startX=0, startY=0;
+      handle.addEventListener('mousedown', (e)=>{
+        e.stopPropagation();
+        resizing = true;
+        focusWindow(win);
+        startW = win.offsetWidth;
+        startH = win.offsetHeight;
+        startX = e.clientX;
+        startY = e.clientY;
+        document.body.style.userSelect = 'none';
+      });
+      document.addEventListener('mousemove', (e)=>{
+        if(!resizing) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        win.style.width = Math.max(320, startW + dx) + 'px';
+        win.style.height = Math.max(220, startH + dy) + 'px';
+      });
+      document.addEventListener('mouseup', ()=>{
+        resizing = false;
+        document.body.style.userSelect = '';
+      });
+
+      // Controls
+      const btnMin = win.querySelector('.btn.minimize');
+      const btnMax = win.querySelector('.btn.maximize');
+      const btnClose = win.querySelector('.btn.close');
+
+      btnMin.addEventListener('click', ()=>{
+        win.classList.remove('active');
+        const taskIcon = taskbarApps.querySelector(`[data-win="${win.id}"]`);
+        if(taskIcon) taskIcon.classList.remove('active');
+      });
+
+      btnMax.addEventListener('click', ()=>{
+        const isMax = win.dataset.maximized === 'true';
+        if(!isMax){
+          win.dataset.prevLeft = win.style.left;
+          win.dataset.prevTop  = win.style.top;
+          win.dataset.prevW    = win.style.width;
+          win.dataset.prevH    = win.style.height;
+          win.style.left = '0px';
+          win.style.top  = '0px';
+          win.style.width = (window.innerWidth) + 'px';
+          win.style.height = (window.innerHeight - 60) + 'px';
+          win.dataset.maximized = 'true';
+        } else {
+          win.style.left = win.dataset.prevLeft || '80px';
+          win.style.top  = win.dataset.prevTop  || '80px';
+          win.style.width = win.dataset.prevW   || '560px';
+          win.style.height= win.dataset.prevH   || '360px';
+          win.dataset.maximized = 'false';
+        }
+        focusWindow(win);
+      });
+
+      btnClose.addEventListener('click', ()=>{
+        win.classList.remove('active');
+        removeTaskIcon(win.id);
+      });
+
+      // Activate on click
+      win.addEventListener('mousedown', ()=> focusWindow(win));
+    });
+
+    // Start search filter (demo)
+    const startSearch = document.getElementById('startSearch');
+    startSearch.addEventListener('input', ()=>{
+      const q = startSearch.value.toLowerCase();
+      document.querySelectorAll('.start-app').forEach(el=>{
+        const app = el.getAttribute('data-app');
+        el.style.display = app.includes(q) ? 'grid' : 'none';
+      });
+    });
+
+    // Demo: open some windows initially
+    openWindow('win-explorer');
+    openWindow('win-notes');
+
+    // Demo: fake browser URL display
+    const fakeUrl = document.getElementById('fakeUrl');
+    fakeUrl.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        const url = fakeUrl.value.trim();
+        alert('Demo hiển thị URL: ' + (url || '(trống)'));
+      }
+    });
+  </script>
+</body>
+</html>
